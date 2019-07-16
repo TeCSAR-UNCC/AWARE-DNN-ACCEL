@@ -1,0 +1,107 @@
+
+/*
+
+
+	//val WData_in=Input(Vec(Conv, Vec(ChanPar,Vec(KUints,UInt(8.W))) )    )
+
+	//val offset=Output(Vec(KUints,UInt(8.W)))
+})
+
+
+*/
+
+package thecode
+import chisel3._
+import chisel3.util._
+import chisel3.iotesters
+import chisel3.iotesters.{ChiselFlatSpec, Driver, PeekPokeTester}
+import Chisel.iotesters.{SteppedHWIOTester, ChiselFlatSpec}
+import scala.language.reflectiveCalls
+
+class TestCPE (val rowSize: Int,val filterSize: Int, val stride: Int, val outConv: Int,val KernNum : Int,val KUints : Int,val ChanPar : Int,val ChanBuffer : Int,val GROUPS :Int,val Shuffle :Int, val pipeline :Int ,val Conv :Int,val pool :Int,val FcDiv :Int,val WaitTime :Int, val waitmult: Int, val sysoff :Boolean,val ROM :Int) extends Module {
+	
+
+	var newPar=0
+		if(GROUPS==ChanBuffer*ChanPar)
+		{
+			newPar=1
+
+		}
+		else
+		{
+			newPar=ChanPar
+			//in this case its the original value
+		}
+
+
+
+val io = IO(new Bundle {
+
+		val WData_in=  if (sysoff) Some( Input(  Vec(KUints,UInt((ChanPar*Conv*8).W))  ) ) else None 
+		val request   	=  if (sysoff) Some( Output(UInt(1.W)) ) else None
+		
+
+		val valid_Out= Output(UInt(1.W))
+		val Chan_Ptr  	= Output(UInt(10.W))//testbench drives
+		val mac_out 		= Output(Vec(newPar,Vec(KUints,UInt(8.W))))
+})
+
+val source= Module(new advINGEN(WaitTime,ChanPar,waitmult))
+//var cpe :SYSOFFCPE = null
+//need to find a way to conditionally call modules
+
+
+if (sysoff)
+{
+			
+	val cpe= Module(new SYSOFFCPE(rowSize,filterSize,stride,outConv,KernNum,KUints,ChanPar,ChanBuffer,GROUPS,Shuffle,pipeline,Conv,pool,FcDiv))
+
+io.request.get:=cpe.io.WRequest
+cpe.io.WData_in<>io.WData_in.get
+
+		for(i <- 0 until ChanPar)
+			{
+				cpe.io.write_enable(i):=source.io.valid_Out
+			}
+			cpe.io.write_data<>source.io.Data_out
+			
+			io.mac_out<>cpe.io.mac_out
+			io.Chan_Ptr:=cpe.io.Chan_Ptr
+			io.valid_Out:=cpe.io.valid_out
+
+
+
+}
+else
+{
+
+val cpe= Module(new CPE(rowSize,filterSize,stride,outConv,KernNum,KUints,ChanPar,ChanBuffer,GROUPS,Shuffle,pipeline,Conv,pool,FcDiv,ROM))
+
+
+			for(i <- 0 until ChanPar)
+			{
+				cpe.io.write_enable(i):=source.io.valid_Out
+			}
+			cpe.io.write_data:=source.io.Data_out
+			
+			io.mac_out:=cpe.io.mac_out
+			io.Chan_Ptr:=cpe.io.Chan_Ptr
+			io.valid_Out:=cpe.io.valid_out
+
+
+}
+
+
+
+
+	
+
+
+
+}
+
+
+
+
+
+

@@ -1,0 +1,106 @@
+package thecode
+import chisel3.iotesters.{PeekPokeTester, Driver}
+import chisel3._
+import chisel3.iotesters
+import chisel3.util._
+import chisel3.iotesters.{ChiselFlatSpec, Driver, PeekPokeTester}
+import Chisel.iotesters.{SteppedHWIOTester, ChiselFlatSpec}
+import scala.language.reflectiveCalls
+class MaxPool(val OutRowsize:Int) extends Module
+{
+	val bufferBitW = log2Ceil(OutRowsize+1)
+
+	val io = IO(new Bundle 
+	{   
+		val input = Input(UInt(8.W))  // each input from the chanels
+		val valid_in=Input(UInt(1.W)) 
+		val output = Output(UInt(8.W))      // 'kernel' num of o/p
+		val valid_out=Output(UInt(1.W))
+	})
+ 
+	val buffer = Reg(Vec(OutRowsize,UInt(8.W))) //we use this to buffer input pixles
+	val inputCntr=RegInit(0.U(bufferBitW.W))// this keeps track of inputs
+	val CompareCntr=RegInit(0.U(1.W))// this slowly moves the input counter
+	val RowCntr=RegInit(0.U(1.W))// this slowly moves the input counter
+	val OutputReg=RegInit(0.U(8.W))
+	val ValidOutReg=RegInit(0.U(8.W))
+	ValidOutReg:=0.U
+	when(io.valid_in.toBool)
+	{
+		when(RowCntr===0.U)
+		{//when in the first row
+			
+			when( (CompareCntr)===(0.U))
+			{//and first element
+				buffer(inputCntr):= io.input
+				CompareCntr:=CompareCntr+1.U
+				//just place it in, and move to 2nd element
+			}
+			.otherwise
+			{//on 2nd element
+			
+				when (io.input > buffer(inputCntr)) 
+				{//compare to 1st element
+					buffer(inputCntr):= io.input
+					//and replace if nessesary
+				}
+				CompareCntr:=CompareCntr+1.U
+				inputCntr:=inputCntr+1.U
+				//go back to first element
+				// and move pointer
+			}
+		}
+		.otherwise
+		{//2nd row	
+
+			when( (CompareCntr)===(0.U))
+			{	//first element
+				
+				when (io.input > buffer(inputCntr)) 
+				{//compare
+					buffer(inputCntr):= io.input
+					
+				}
+				CompareCntr:=CompareCntr+1.U
+				//go to 2nd element
+			}
+			.otherwise
+			{//2nd element
+			
+				when (io.input > buffer(inputCntr)) 
+				{//compare
+					buffer(inputCntr):= io.input
+					OutputReg:=io.input
+					ValidOutReg:=1.U
+					//output input if inpute> buffer
+				}
+				.otherwise
+				{//otherwise output
+					OutputReg:=buffer(inputCntr)
+					ValidOutReg:=1.U
+		
+				}
+				CompareCntr:=CompareCntr+1.U
+				inputCntr:=inputCntr+1.U
+			}	
+		}
+
+
+	}
+
+
+		when( (inputCntr)===((OutRowsize).asUInt))
+		{
+			inputCntr:=0.U
+			RowCntr:=RowCntr+1.U
+
+		
+
+		}
+
+	
+		io.output:=OutputReg
+		io.valid_out:=ValidOutReg
+
+}
+	

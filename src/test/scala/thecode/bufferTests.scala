@@ -1,0 +1,79 @@
+package thecode
+import chisel3.iotesters.{PeekPokeTester, Driver}
+import chisel3._
+import chisel3.util._
+
+class bufferTests(c: buffer) extends PeekPokeTester(c)
+{
+		//val channel_args = Seq(3,10,16)
+
+	      //  val dataIn =Seq.fill(c.filterSize+c.stride)(0)
+
+
+
+val row0 = Seq(7,1,2,3,4,5,6,7,8)
+val row1 = Seq(9,10,11,12,13,14,15,16,17)
+val row2 = Seq(18,19,20,21,22,23,24,25,26)
+val row3 = Seq(27,28,29,30,31,32,33,34,35)
+val row4 = Seq(36,37,38,39,40,41,42,43,44)
+val row5 = Seq(45,46,47,48,49,50,51,52,53)
+val row6 = Seq(54,55,56,57,58,59,60,61,62)
+val row7 = Seq(63,64,65,66,67,68,69,70,71)
+val row8 = Seq(72,73,74,75,76,77,78,79,80)
+
+val row0c = Seq(7,1,2,3,4,5,6,7,8)
+val row1c = Seq(9,10,11,12,13,14,15,16,17)
+val row2c = Seq(18,19,20,21,22,23,24,25,26)
+val row3c = Seq(27,28,29,30,31,32,33,34,35)
+val row4c = Seq(36,37,38,39,40,41,42,43,44)
+val row5c = Seq(45,46,47,48,49,50,51,52,53)
+val row6c = Seq(54,55,56,57,58,59,60,61,62)
+val row7c = Seq(63,64,65,66,67,68,69,70,71)
+val row8c = Seq(72,73,74,75,76,77,78,79,80)
+
+val IMAGE = row0++row0c++row1++row1c++row2++row2c++row3++row3c++row4++row4c++row5++row5c++row6++row6c++row7++row7c++row8++row8c
+
+//rnd.nextInt(5).asUInt.asUInt
+		step(1)
+		for(input <- 0 until IMAGE.length*3)//input 3 channels
+		{
+		
+			poke(c.io.write_enable,true.B)
+			poke(c.io.write_data,input.asUInt)
+			step(1)
+			poke(c.io.write_enable,false.B)
+			step(300)
+		}	
+
+
+step(150)
+		
+}
+		
+	
+	/*
+		for(a <- 0 until 5)
+		{
+		
+			for(i <- 0 until c.bchannels)
+			{
+			
+				for(j <- 0 until c.rowSize)
+				{
+					poke(c.io.write_enable,true.B)
+					poke(c.io.write_data,(j+j*i).asUInt)
+					step(1)
+					poke(c.io.write_enable,false.B)
+					step(99)
+				}
+			}
+			
+
+		}
+
+
+		poke(c.io.write_enable,false.B)
+		//poke(c.io.read_enable,true.B)
+		step(100)
+
+*/

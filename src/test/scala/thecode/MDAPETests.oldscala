@@ -1,0 +1,77 @@
+package thecode
+import chisel3.iotesters.{PeekPokeTester, Driver}
+import chisel3._
+import chisel3.util._
+
+
+/**********************************************************************************/
+//                                     README
+
+// This same file is used to verify the APE as well as APU, for APE just use the file as it is 
+//For APU just comment the uncommented part and uncomment the commented part 	;=)
+/**********************************************************************************/
+
+// class APETest(c: APU) extends PeekPokeTester(c)
+// {
+	
+// 		//}
+
+// 		for(k<-0 until 3)
+// 	{
+// 		for(i <- 0 until c.Channels) 
+// 		{	
+// 		  for (j<- 0 until c.Rowsize)
+// 			{
+// 			poke(c.io.ip(i),rnd.nextInt(20).asUInt)
+// 			step(1)
+// 			poke(c.io.valid(i),true.B)
+// 			step(1)
+// 			poke(c.io.valid(i),false.B)
+// 			step(1)
+// 			poke(c.io.ip(i),0.asUInt)
+// 			step(1)
+// 			}
+// 		}
+// 	}
+
+
+// }
+class MDAPETests(c: MDAPE) extends PeekPokeTester(c)
+{
+	
+
+	for(a <-0 until 5)
+	{
+
+	for(i <- 0 until c.Channels) 
+	{	
+		for (j<- 0 until c.Rowsize)
+		{
+
+			for (a<-0 until c.ChanlPar)
+			{
+
+					for(k<-0 until c.KUints)
+					{	
+						poke(c.io.ip(a)(k),(j+1).asUInt)					
+						poke(c.io.valid(a)(k)(i),true.B)
+					}
+
+			}
+			step(1)
+
+			for (a<-0 until c.ChanlPar)
+			{
+				for(k<-0 until c.KUints)
+				{	
+					poke(c.io.valid(a)(k)(i),false.B)
+					poke(c.io.ip(a)(k),0.asUInt)
+				}
+			}
+					
+
+		}
+	}
+step(5)
+}
+}

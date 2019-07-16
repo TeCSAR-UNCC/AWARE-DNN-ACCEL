@@ -1,0 +1,371 @@
+/*
+Buffer module
+
+Function: This code is the module that relizes all the 2D buffers.
+It is paramatizable enough to create a tensor buffer.
+Tensor buffers are simply 2D buffers that also allocat for the dimension
+of channels.
+
+Authors: Justin Sanchez 
+Editor: Adarsh Sawant
+last changed date:10/26/18 
+Current Version:1.0
+
+V1-Changelog:
+Currently in the process of verfication and commenting out for future use.
+
+Notes to current editor/author:
+
+hey this is partially comented out, but i understand it may not help, so if at any part you feel a comment is lacking
+just add a line like:
+
+//Adarsh:What doese this register function as
+I will do the same as well amd n the final version we can delete these.
+*/
+
+//the tensor buffer has an output delay of 1 cycyle from the start of conv, so conv start is signaled 1 cycle later you get data
+//furthermore the first diit is displayed 1 cycle longer than nesesary longer than nessasary
+//there are two garbage cycles at the end, so you stop reading the buffer early
+//number of cycles total: Filtersize^2*convwindow
+
+
+//two garbage cycles from conv start
+//this does not apply in the middle betwen channels
+//two garbage cycles at the end
+//window done is signaled every time it changes
+
+package thecode
+import chisel3._
+import chisel3.util._
+import chisel3.iotesters
+import chisel3.iotesters.{ChiselFlatSpec, Driver, PeekPokeTester}
+import Chisel.iotesters.{SteppedHWIOTester, ChiselFlatSpec}
+import scala.language.reflectiveCalls
+
+//test:run-main thecode.Launcher buffer --backend-name verilator
+
+//kernel number respons to how many times we must loop around this buffer. The more kern paralism the less loops
+//b channels is the number of buffer channels in a single tensor-buffer. mor chan paralism less buffered channels
+//the rest is standard
+//window done is triggered 2 cycles early
+//row counter is wo cycles early
+//clumn pointer is two cyces early
+//assicly all the control logic is two cycles behind the actuall output
+
+
+
+class buffer (val rowSize: Int,val filterSize: Int, val stride: Int,  val outConv: Int,KernNum : Int ,val bchannels :Int,val GROUPS :Int,val Shuffle :Int,val Conv :Int ) extends Module 
+{
+	val io = IO(new Bundle {
+		val write_enable   	= Input(Bool())//testbench drives
+		val convState  	= Output(Bool())//mac control
+		val KernelNum = Output(UInt(log2Ceil(KernNum+1).W))//mac control
+		val rowPtr = Output(UInt(log2Ceil(filterSize+1).W))
+		val colPtr = Output(UInt(log2Ceil(filterSize+1).W))
+		val ChannelPTR = Output(UInt(10.W))//mac control, what channel im on
+		val KD = Output(Bool())//mac control, kernel travker
+		val WD = Output(Bool())//mac control, sliding window tracker
+		//val  WP = Output(UInt(log2Ceil(rowSize+(filterSize+stride)*rowSize+(bchannels)*(filterSize+stride)*rowSize).W))
+		//val  RP = Output(UInt(log2Ceil(rowSize+(filterSize+stride)*rowSize+(bchannels)*(filterSize+stride)*rowSize).W))
+		val CHGO = Input(Bool())
+		val write_data  	= Input(UInt(8.W))//testbench drives
+		val read_data 		= Output( Vec(Conv,UInt(8.W)) )//make vec
+		val DONE  	= Output(UInt(1.W))//mac control
+		
+})
+
+		io.DONE:=0.U
+
+	//val Mpattern = 0x1.U(((filterSize+stride)*bchannels).W)//state register
+	//val mask = RegInit(Vec(Mpattern.toBools))//for memory read
+
+	//val dataOut = Wire(Vec(filterSize+stride,UInt(8.W)))
+	//val dataIN = Wire(Vec((filterSize+stride)*bchannels,UInt(8.W)))
+	//val default_IN = Vec(Seq.fill((filterSize+stride)*bchannels)(0.U(8.W)))
+	//dataIN:=default_IN
+	//val dataOut = RegInit(0.U(8.W))//make vec
+	val dataOut = RegInit(Vec(Seq.fill(Conv)(0.U(8.W))))
+
+	//val accumlateRegs = Reg(Vec(Conv,UInt(8.W)))
+
+
+	val OutputValid	= RegInit(0.U(1.W))
+	
+		//rowSize,Vec((filterSize+stride)*bchannels
+		// (filterSize*filterSize*KernNum*KUints*ChanPar*ChanBuffer+KernNum*KUints) , UInt(8.W) 
+			//val mem = SyncReadMem( (rowSize*(filterSize+stride)*bchannels), UInt(8.W) )
+
+
+		
+			val addresize = (rowSize*(filterSize+stride)*bchannels)
+			val mem = {Module(new memgen(addresize,Conv)).io} 
+			
+
+	val windowPtr = RegInit(0.U(8.W))
+	val chanPtr = RegInit(0.U(10.W))
+		io.ChannelPTR:=chanPtr	
+	val convSTATE = RegInit(0.U(1.W))// make vector on bchannels
+	
+		//val convSTATE =RegInit(Vec(Seq.fill(bchannels)(0.U(1.W))))
+		val Initalconv = RegInit(1.U(1.W))
+		val DoneInitalconv = RegInit(0.U(1.W))
+
+		
+		val KD = RegInit(false.B)//kernel tracker
+	
+		val WD = RegInit(false.B)//window tracker
+		val stridedconv = RegInit(0.U(1.W))// am i in a strided window
+		val offset = RegInit(0.U(log2Ceil((filterSize+stride)).W))// column offset
+		val coffset = RegInit(0.U(log2Ceil((bchannels+1)).W))// channel offest
+		val currcoffset = RegInit(0.U( log2Ceil((bchannels+1)).W))//offset for reading current channel
+		val Foffset = RegInit(0.U(log2Ceil((filterSize+stride)).W))//column offset for reading
+		val rowCounter = RegInit(0.U(8.W))//for writing
+		val currentrowCounter = RegInit(0.U(8.W))//for reading
+		val InPtr =RegInit(0.U(log2Ceil((rowSize+1)).W))//writing ptr
+		val Kcount= Wire(new counterout(KernNum))//internal kernel count
+		Kcount:=Dcounter(KD.toBool,Kcount.Overflow,(KernNum))
+		io.KernelNum:=Kcount.out
+		io.KD:=KD.toBool
+		io.WD:=WD
+		io.convState:=convSTATE
+
+	mem.WE:=io.write_enable
+	mem.RE:=convSTATE
+	mem.Data_in:=io.write_data
+	
+		for(i <- 0 until Conv)
+		{
+			dataOut(i):=mem.Data_out(i)//make vec
+		}
+	
+
+	//else//if you understand the code aboc you can skip to the writing triggering code, this is just altered regular conv (not 1x1)
+	//{
+		val rowPtr= Wire(new counterout(filterSize+1))
+		val rowPtrEN= Wire(Bool())
+ 		rowPtrEN :=false.B
+		rowPtr:=jcounter(rowPtrEN,KD.toBool,filterSize+1)
+	
+	
+		val colPtr= Wire(new counterout(filterSize))
+		//val colPtrEN= Wire(Bool())
+ 		//colPtrEN :=0.U
+		colPtr:=jcounter(rowPtr.Overflow,KD.toBool,filterSize)
+
+		val CWINDOW= Wire(UInt(1.W))//internal kernel count
+		CWINDOW:=colPtr.Overflow&rowPtr.Overflow
+			val Doneconv = RegInit(0.U(1.W))
+			Doneconv:=CWINDOW
+
+		io.rowPtr:=rowPtr.out
+		io.colPtr:=colPtr.out
+
+//io.RP:=JUSTINREADPTR
+
+val JUSTINREADPTR= RegInit(0.U(log2Ceil(rowSize+(filterSize+stride)*rowSize+(1024)*(filterSize+stride)*rowSize).W))
+	if(Conv==1)
+	{
+	JUSTINREADPTR:= (windowPtr+colPtr.out+ (((Foffset+rowPtr.out)%(filterSize+stride).asUInt)*(rowSize).asUInt)+chanPtr*((rowSize)*(filterSize+stride)).asUInt  )
+
+	}
+	else
+	{
+	JUSTINREADPTR:= (windowPtr+ (((Foffset+rowPtr.out)%(filterSize+stride).asUInt)*(rowSize).asUInt)+chanPtr*((rowSize)*(filterSize+stride)).asUInt  )
+
+	}
+
+mem.RPTR:=JUSTINREADPTR
+
+		//convSTATE.toBool
+	when(convSTATE.toBool&io.CHGO) //we are in a sending state, read never changes row state
+	{		KD:=0.U//kernel start
+
+
+			rowPtrEN :=1.U
+
+		when(Kcount.out<=(KernNum-1).asUInt)
+		{
+			when(chanPtr<=(bchannels-1).asUInt)
+			{	
+				when(windowPtr+stride.asUInt<=(rowSize+1).asUInt)//currently 2 off, i add 2 to fix, do more
+				{
+					WD:=false.B
+					when(CWINDOW===1.U)
+					{
+						WD:=true.B
+						windowPtr:=windowPtr+(stride).asUInt
+
+					}//COL AND ROW LOOP
+				
+				}//WINDOW LOOP
+				.otherwise //when done with 2d line 	
+				{
+						when(CWINDOW===1.U)
+						{
+							windowPtr:=0.U
+							//need to correct group convolution
+							chanPtr:=chanPtr+1.U+(KernNum%GROUPS).asUInt
+						}
+					
+				}//DONE WITH WINDOW
+			
+			}//chanel loop
+			.otherwise
+			{	
+				KD:=1.U//kernel done
+				chanPtr:=0.U
+			}
+		
+		}//kernel
+		.otherwise
+		{
+			convSTATE:=0.U
+			windowPtr:=0.U
+			rowPtrEN :=0.U
+		}		
+
+	}//DONE WITH EVERYTHING
+	//}
+
+		for(i <- 0 until Conv)
+		{
+			io.read_data(i):=dataOut(i)//make vec
+		}
+	
+// make vec
+
+
+
+
+val JUSTINWRTITEPTR= RegInit(0.U(log2Ceil(rowSize+(filterSize+stride)*rowSize+(bchannels)*(filterSize+stride)*rowSize).W))
+
+JUSTINWRTITEPTR:= (InPtr+(offset*rowSize.asUInt) + ( coffset*((filterSize+stride)*rowSize).asUInt ))
+mem.WPTR:=JUSTINWRTITEPTR
+//io.WP:=JUSTINWRTITEPTR
+//JUSTINWRTITEPTR:= (InPtr+ (offset*rowSize.asUInt)  + ( coffset*((filterSize+stride)*rowSize).asUInt )
+
+	when (io.write_enable)//when I have been given a valid write signal
+	{	
+		currcoffset:=coffset
+		//mem.write(InPtr+(offset*rowSize.asUInt)+( coffset*((filterSize+stride)*rowSize).asUInt ), io.write_data) 
+			
+		when (InPtr<(rowSize.asUInt(log2Ceil(rowSize+1).W))-1.U)//rowsize= #of cols
+		{
+				InPtr:=InPtr+1.U			//same
+						
+		}
+		.otherwise//move channel, after you write a row
+		{	
+						//lastwrite for previous row
+						//dataIN(coffset+offset):=io.write_data
+		
+						InPtr:=0.U
+						//reset logic as well
+				
+			when(coffset<((bchannels-1)).asUInt) 
+			{	//potiental testing logic don't touch:
+							/*
+							printf(p"\n")
+							printf(p"conv!!!\n")
+							printf(p"\n")
+							*/
+				coffset:=coffset+Shuffle.asUInt
+	
+						//potiential error:c offset might not match the number of channels I'm bufferin
+			}
+			.otherwise
+			{
+								//reset channel
+					coffset:=0.U
+					offset:=offset+1.U
+					rowCounter:=rowCounter+1.U//add row after all channels
+							
+					when(offset!=(filterSize+stride).asUInt) //The mask is not at limit
+					{
+						offset:=offset+1.asUInt			
+								
+					}
+					.otherwise//if it is start from the begining
+					{
+						offset:=0.U
+					}	
+			}
+		}
+							
+						
+	
+	}//WRITE LOOP
+
+
+	when ((rowCounter===(filterSize).asUInt)&(currentrowCounter!=rowCounter))
+	{
+		when(currcoffset!=(bchannels).asUInt)
+		{
+			
+				
+									
+				KD:=0.U
+				Foffset:=0.U
+				currcoffset:=currcoffset+1.U
+								
+		}
+	
+		.otherwise
+		{	
+						
+			convSTATE:=1.U
+			currentrowCounter:=rowCounter
+			currcoffset:=0.U	
+		}				
+
+						
+	}//VERTICAL FIRST CONV
+	.otherwise
+	{
+			when (rowCounter>(filterSize).asUInt)
+			{
+				when ( (0.U===(rowCounter-filterSize.asUInt)%stride.asUInt)&(currentrowCounter!=rowCounter) )
+				{
+
+								
+					when(currcoffset!=(bchannels).asUInt)
+					{
+						convSTATE:=1.U
+									
+						KD:=0.U
+						Foffset:=Foffset+stride.asUInt
+						currcoffset:=currcoffset+1.U
+						
+					}
+	
+					.otherwise
+					{
+						currentrowCounter:=rowCounter
+						currcoffset:=0.U
+					}							
+
+				}
+			}
+	}//ALL OTHER CONV
+	
+	//potentally extra control, ignore for now:
+		
+		when ((currentrowCounter===( rowSize ).asUInt)&(!convSTATE(coffset).toBool))
+		{
+			io.DONE:=1.U
+		
+				rowCounter:=0.U
+				currentrowCounter:=0.U
+			
+				offset:=0.U
+				Foffset:=0.U
+				InPtr:=0.U
+				
+
+
+		}//LAST ROW, and done with convolution CLEAR ALL
+
+}
+
+
+

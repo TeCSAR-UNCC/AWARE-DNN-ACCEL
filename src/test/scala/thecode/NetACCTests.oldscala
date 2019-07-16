@@ -1,0 +1,45 @@
+package thecode
+import chisel3.iotesters.{PeekPokeTester, Driver}
+import chisel3._
+import chisel3.util._
+
+class NetACCTests(c: NetACC) extends PeekPokeTester(c)
+{
+		//val channel_args = Seq(3,10,16)
+
+	      //  val dataIn =Seq.fill(c.filterSize+c.stride)(0)
+
+	for(k <- 0 until 16)
+	{
+
+		for(chan <- 0 until 112)
+		{
+
+	
+
+
+				for(i <- 0 until 3)
+				{
+					for(j <- 0 until 224)
+					{
+
+
+						for(chan <- 0 until 3)
+						{
+							poke(c.io.write_enable(chan),true.B)
+							poke(c.io.write_data(chan),j.asUInt)
+						}
+						step(1)
+						for(chan <- 0 until 3)
+						{
+							poke(c.io.write_enable(chan),false.B)
+						}
+						step(150)
+					}
+				}
+
+		}
+		
+
+	}	
+}

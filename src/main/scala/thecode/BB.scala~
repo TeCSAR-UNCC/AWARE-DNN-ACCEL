@@ -1,0 +1,28 @@
+//all the package and import lines need to be included
+package thecode
+import chisel3._
+import chisel3.util._
+import chisel3.experimental._ // To enable experimental features
+import chisel3.iotesters.{PeekPokeTester, Driver}
+import chisel3.iotesters.{ChiselFlatSpec, Driver, PeekPokeTester}
+import Chisel.iotesters.{SteppedHWIOTester, ChiselFlatSpec}
+import chisel3.iotesters.{Driver, TesterOptionsManager}
+import scala.language.reflectiveCalls
+import scala.collection.mutable.ArrayBuffer
+class l () extends BlackBox with HasBlackBoxResource
+{
+
+val io = IO(new Bundle {
+		val clock = Input(Clock())
+		val reset = Input(Bool())
+val io_output_0= Output(UInt(8.W))
+val io_valid_out_0= Output(Bool())
+})
+
+
+
+
+
+		setResource("/l1.v")
+
+}

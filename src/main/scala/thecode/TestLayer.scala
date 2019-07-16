@@ -1,0 +1,78 @@
+package thecode
+import chisel3._
+import chisel3.util._
+import chisel3.iotesters
+import chisel3.iotesters.{ChiselFlatSpec, Driver, PeekPokeTester}
+import Chisel.iotesters.{SteppedHWIOTester, ChiselFlatSpec}
+import scala.language.reflectiveCalls
+
+
+class TestLayer (val rowSize: Int,val filterSize: Int, val stride: Int, val Out_size: Int,val KernNum : Int,val KUints : Int,val ChanPar : Int,val ChanBuffer : Int,val poolOut: String, val delay : Int,val GROUPS :Int,val Shuffle :Int,val pipeline :Int,val Conv :Int, val poolint :Int,val FcDiv :Int,val WaitTime :Int, val waitmult: Int, val sysoff :Boolean,val layerNum :Int,val ROM :Int,val AVG :Int) extends Module 
+{
+
+val io = IO(new Bundle {
+		
+	    	val output = Output(UInt(1.W))     
+    		val valid_out=Output(UInt(1.W))
+		val WData_in=  if (sysoff) Some( Input(  Vec(KUints,UInt((ChanPar*Conv*8).W))  ) ) else None 
+		val request   	=  if (sysoff) Some( Output(UInt(1.W)) ) else None
+
+})
+
+val lnum= "l_"+layerNum.toString
+
+override def desiredName = lnum
+
+
+	val frontend = Module(new TestFrontend(rowSize,filterSize,stride,Out_size, KernNum , KUints , ChanPar , ChanBuffer,delay,GROUPS,Shuffle,pipeline,Conv,poolint,FcDiv,WaitTime,waitmult,sysoff,ROM,AVG))
+	val backends = Array.fill(KUints){ Module(new backend(Out_size,poolOut,KernNum)).io } 
+
+		if (sysoff)
+		{
+			for(i <- 0 until KUints)
+			{
+				frontend.io.WData_in.get(i):=io.WData_in.get(i)//1a	
+			}
+			io.request.get:=frontend.io.request.get
+		}
+		else
+		{
+
+
+		}
+		
+	
+		for( j <- 0 until KUints) 
+		{
+			
+				backends(j).input:=frontend.io.output(j)
+				backends(j).input_valid:=frontend.io.valid_out(j)
+
+		}
+	
+
+		var finalOUT = 0.U
+		var finalOUTVailid = 0.U
+		val finalOutWire = Wire(UInt(1.W))
+		val finalOutValidWire =Wire(UInt(1.W))
+	//mul:=(in1*in2)+sum //Name changed
+
+		 for(i<- 0 until KUints)
+		{
+		   finalOUT=finalOUT^((backends(i).output.asUInt).orR)
+
+		   finalOUTVailid=finalOUTVailid^backends(i).output_valid    
+		}
+
+		finalOutWire:=finalOUT
+		finalOutValidWire:=finalOUTVailid
+		finalOUT = 0.U
+		finalOUTVailid = 0.U
+		io.output:=finalOutWire
+		io.valid_out:=finalOutValidWire
+
+}
+
+
+		
+

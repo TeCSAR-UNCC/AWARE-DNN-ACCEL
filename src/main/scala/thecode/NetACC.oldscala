@@ -1,0 +1,94 @@
+package thecode
+import chisel3._
+import chisel3.util._
+import chisel3.iotesters
+import chisel3.iotesters.{ChiselFlatSpec, Driver, PeekPokeTester}
+import Chisel.iotesters.{SteppedHWIOTester, ChiselFlatSpec}
+import scala.language.reflectiveCalls
+
+
+class NetACC () extends Module 
+{
+	val io = IO(new Bundle {
+	val write_enable   	= Input(Vec(3,Bool()))//testbench drives
+	val write_data  	= Input(Vec(3,UInt(8.W)))//testbench drives
+	val output 		= Output(Vec(1,UInt(8.W)))//mac data
+	val valid   		= Output(Vec(1,Vec(1,Vec(1000,UInt(1.W)))))//make multi dim
+
+})
+
+
+
+//val a = Seq(rowSize, filterSize, stride, Out_size, KernNum , KUints, ChanPar, ChanBuffer, poolOut)
+val numlayers=16
+val rowsize=   Seq(224,112,56,56,56,56,28,28,28,28,14,14,14,14,14,14)
+val filterSize=Seq(3,3,1,3,1,3,1,3,1,3,1,3,1,3,1,1)
+val stride=    Seq(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)
+val Out_size= Seq(112,56,56,56,56,28,28,28,28,14,14,14,14,14,14,14)
+val KernNum= Seq(16,32,16,32,16,64,32,64,32,128,64,128,64,128,128,1000)
+val KUints= Seq(1,1,1,4,1,2,1,4,1,2,1,4,1,4,1,1)
+val ChanPar= Seq(3,1,1,1,4,1,2,1,4,1,2,1,4,1,4,1,1,1)
+val ChanBuffer= Seq(1,16,32,16,32,16,64,32,64,32,128,64,128,64,128,128)
+val poolOut= Seq("pool","pool","nopool","nopool","nopool","pool","nopool","nopool","nopool","pool","nopool","nopool","nopool","nopool","nopool","nopool","nopool")
+
+	val AVGPOOL = Module(new CPE(14,14,14,1, 1 , 1 ,1,1000,1,1,1)) 
+	
+	val layers = for (i <- 0 until 16) yield 
+	{  							//to create multiple layers
+	       val layer = Module(new layer(rowsize(i),filterSize(i),stride(i),Out_size(i),KernNum(i),KUints(i),ChanPar(i),ChanBuffer(i),poolOut(i),1,5,1,1 ))
+	  
+	       layer
+	 }
+		
+
+		for( c <- 0 until ChanPar(0))
+		{
+			
+				layers(0).io.write_enable(c):=io.write_enable(c)
+				layers(0).io.write_data(c):=io.write_data(c)
+			
+		}		
+
+	for( i <- 0 until numlayers-1) 
+	{  					
+		for( c <- 0 until ChanPar(i+1))
+		{
+			for( k <- 0 until KUints(i))
+			{
+				layers(i+1).io.write_data(c):=layers(i).io.output(k)
+				layers(i+1).io.write_enable(c):=layers(i).io.valid_out(k)
+			}
+		}		
+	}
+
+	for( k <- 0 until KUints(15))
+	{
+		AVGPOOL.io.write_data(k):=layers(15).io.output(k)
+		AVGPOOL.io.write_enable(k):=layers(15).io.valid_out(k)
+	}
+
+
+	
+
+		for( l <- 0 until 1) 
+		{
+			for( j <- 0 until 1) 
+			{
+				for( i <- 0 until 1000) 
+				{
+					io.output(l)(j)(i):=AVGPOOL.io.mac_out(l)(j)(i)	
+					io.valid(l)(j)(i):=AVGPOOL.io.valid_out(l)(j)(i)	
+				}
+
+					
+			}
+
+		}
+
+
+	
+
+
+}
+
+
