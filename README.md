@@ -1,4 +1,4 @@
-# AWARE-DNN-ACCEL {WORK-IN-Progress}
+# AWARE-DNN-ACCEL {WORK-IN-PROGRESS}
 =======================
 Project for Automatic Workflow for Application-aware Real-time Edge DNN accelerators
 ## What it is?
