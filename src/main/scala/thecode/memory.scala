@@ -28,7 +28,7 @@ class memory (val filterSize: Int,val KernNum : Int,val KUints : Int,val ChanPar
 	if(ROM==1)
 	{
 
-		val Wmemory = Mem( ( (filterSize*filterSize*KernNum*ChanBuffer))/FcDiv , UInt((8*Conv).W)  )
+		val Wmemory = Mem( ( ((filterSize/Conv)*filterSize*KernNum*ChanBuffer))/FcDiv , UInt((8*Conv).W)  )
 		val ptrREG=RegInit(0.U( log2Ceil(  (filterSize*filterSize*KernNum*ChanBuffer+1) ).W )   )
 		val WRITEPtr = RegInit(0.U(log2Ceil((((filterSize*filterSize*KernNum*ChanBuffer+1)))).W))//writing ptr
 		ptrREG:=io.PTR
@@ -45,7 +45,7 @@ class memory (val filterSize: Int,val KernNum : Int,val KUints : Int,val ChanPar
 	}
 	else
 	{			//SyncReadMem
-		val Wmemory = SyncReadMem( ( (filterSize*filterSize*KernNum*ChanBuffer))/FcDiv , UInt((Conv*8).W)  )
+		val Wmemory = SyncReadMem( ( ((filterSize/Conv)*filterSize*KernNum*ChanBuffer))/FcDiv , UInt((Conv*8).W)  )
 		val ptrREG=RegInit(0.U( log2Ceil(  (filterSize*filterSize*KernNum*ChanBuffer+1) ).W )   )
 		val WRITEPtr = RegInit(0.U(log2Ceil((((filterSize*filterSize*KernNum*ChanBuffer+1)))).W))//writing ptr
 		ptrREG:=io.PTR

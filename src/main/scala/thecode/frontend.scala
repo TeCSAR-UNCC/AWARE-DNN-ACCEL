@@ -16,6 +16,7 @@ val io = IO(new Bundle {
 		val write_data  	= Input(Vec(ChanPar,UInt(8.W)))//testbench drives
 	    	val output = Output(Vec(KUints,UInt(8.W)))     
     		val valid_out=Output(Vec(KUints,UInt(1.W)))
+		val DONE=Output(UInt(1.W))
 
 })
 
@@ -23,9 +24,9 @@ val io = IO(new Bundle {
   	val CPE = {Module(new CPE(rowSize,filterSize,stride,outConv, KernNum , KUints , ChanPar , ChanBuffer,GROUPS,Shuffle,pipeline,Conv,poolint,FcDiv,ROM)).io} 
 	//val MDAPE = {Module(new MDAPE(ChanPar,KUints, rowSize)).io} 
 
-val sych = Array.fill(KUints) {Module(new SyncMachine(delay,outConv)).io} 
+	val sych = Array.fill(KUints) {Module(new SyncMachine(delay,outConv)).io} 
 
-
+	io.DONE:=CPE.DONE(0)
 
 
 

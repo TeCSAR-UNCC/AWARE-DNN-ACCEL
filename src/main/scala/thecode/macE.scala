@@ -27,7 +27,7 @@ class macE ( val KUints : Int, val Conv : Int) extends Module
 		val MACSTART   	= Output(Bool())
 })
 
-
+		io.valid:=0.U
 		//Mac engine
 		val Engine = Array.fill(KUints){ Module(new MAC(Conv)).io }
 
@@ -116,7 +116,7 @@ class macE ( val KUints : Int, val Conv : Int) extends Module
 		}
 	when(Start)
 	{
-		io.valid:=(WDDelay)&(!pastWD)^KDDelay
+		io.valid:=io.WD&(!pastKD.toBool)
 	}
 	.otherwise
 	{

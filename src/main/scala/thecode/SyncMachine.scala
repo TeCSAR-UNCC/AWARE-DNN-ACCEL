@@ -52,8 +52,10 @@ class SyncMachine (val depth: Int,val Rowsize:Int) extends Module
     val InputCount    = RegInit(0.U(log2Ceil(Rowsize+1).W))
     val OutputCount    = RegInit(0.U(log2Ceil(Rowsize+1).W))
   
-
-         
+		io.output_valid:=io.write_enable
+		io.read_data:=io.write_data
+		
+         /*
     val SYNCmem = SyncReadMem(depth,UInt(8.W)) //the physical layout of memory has been abstracted away
 
 	    when(io.write_enable === 1.U) // Writing the data to the Fifo element
@@ -69,36 +71,31 @@ class SyncMachine (val depth: Int,val Rowsize:Int) extends Module
 		ReadPtr:=ReadPtr+1.U
 		OutputValid  :=1.U
 		OutputCount:=OutputCount+1.U
+		WritePtr:=0.U
+
+	}
+	when (ReadState===1.U)
+	{
+	    		
+			ReadPtr:=ReadPtr+1.U
+			OutputValid  :=1.U
+			OutputCount:=OutputCount+1.U
 
 	}
 	.otherwise
 	{
-			when (ReadState===1.U)
-			{
-		    		
-				ReadPtr:=ReadPtr+1.U
-				OutputValid  :=1.U
-				OutputCount:=OutputCount+1.U
-
-			}
-			.otherwise
-			{
-				OutputValid  :=0.U
-			}
-		
+			OutputValid  :=0.U
 	}
 	
-	when (InputCount===(Rowsize).asUInt)
+	when (OutputCount===(depth).asUInt)
 	{
-		WritePtr:=0.U
-	}
-	when (OutputCount===(Rowsize-1).asUInt)
-	{
-		WritePtr:=0.U
+		
 		ReadPtr:=0.U
 		ReadState:=0.U
 	}
 
-    io.read_data := SYNCmem.read(ReadPtr)
+    io.read_data := SYNCmem.read(ReadPtr)+ReadPtr
 	io.output_valid:=OutputValid
+
+*/
 }

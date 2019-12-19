@@ -16,12 +16,17 @@ val io = IO(new Bundle {
 		val write_data  	= Input(Vec(ChanPar,UInt(8.W)))//testbench drives
 	    	val output = Output(Vec(KUints,UInt(8.W)))     
     		val valid_out=Output(Vec(KUints,UInt(1.W)))
+		val DONE=Output(UInt(1.W))
 })
 
-//TODO:make dynamic sych machine, make dynamic AVG layer (A1,A2?)
+	//TODO:make dynamic sych machine, make dynamic AVG layer (A1,A2?)
+
+
 
 	val frontend = Module(new frontend(rowSize,filterSize,stride,Out_size, KernNum , KUints , ChanPar , ChanBuffer,delay,GROUPS,Shuffle,pipeline,Conv,poolint,FcDiv,ROM,AVG))
 	val backends = Array.fill(KUints){ Module(new backend(Out_size,poolOut,KernNum)).io } 
+	
+	 io.DONE:=frontend.io.DONE
 
 
 	for(i <- 0 until ChanPar)

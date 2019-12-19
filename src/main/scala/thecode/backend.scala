@@ -16,14 +16,14 @@ class backend(val Out_size: Int, val poolOut: String, val chan: Int) extends Mod
     	val input_valid = Input(UInt(1.W))
     	val output_valid = Output(UInt(1.W)) //ready
   	})
-
+	//io.output_valid:=0.U
   	//val reluin = RegInit(1.S(8.W))			//connects input to ReLU i/p
 	val reluin =RegInit(1.S(8.W))
 	//val reluout =RegInit(Vec(Seq.fill(Channels)(1.S(8.W))))
   	val reluout = RegInit(1.S(8.W))	
   	val relu = Module(new ReLU()) 
-	val pool_in_valid= RegInit(1.U(1.W))
-	val valid_Delay= RegInit(1.U(1.W))
+	val pool_in_valid= RegInit(0.U(1.W))
+	val valid_Delay= RegInit(0.U(1.W))
 	reluin := io.input.asSInt
 	relu.io.ReLU_input := reluin	
 	

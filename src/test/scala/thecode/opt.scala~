@@ -63,7 +63,7 @@ WeightBrams=Seq("WEIGHTS-BRAM.py","WEIGHTS-LUTS.py")
 	 
 	
 
-for (j <- 1 until p.numlayers )  
+for (j <- 0 until p.numlayers )  
 {  		
 
 	for (i <- 0 until startCMDs.length)  
@@ -77,7 +77,7 @@ for (j <- 1 until p.numlayers )
 	}
 }
 
-for (j <- 1 until p.numlayers )  
+for (j <- 0 until p.numlayers )  
 {  		
 
 
@@ -90,8 +90,21 @@ for (j <- 1 until p.numlayers )
 }
 
 
+for (j <- 0 until p.numlayers )  
+{  		
 
-for (j <- 1 until p.numlayers )  
+
+	val WI2CMDS = mainDIR.dropRight(1)+"/python/WI2.py "+path+"l_"+(j).toString+".v"
+
+	println(program)
+	Process("python "+WI2CMDS).!!
+
+	
+}
+
+
+
+for (j <- 0 until p.numlayers )  
 {  		
  program =program:+ (mainDIR.dropRight(1)+"/python/"+dspMACs(p.dspMACs(j))+" "+path+"l_"+(j).toString+".v ")
  program =program:+ (mainDIR.dropRight(1)+"/python/"+poolBrams(p.poolBrams(j))+" "+path+"l_"+(j).toString+".v ")

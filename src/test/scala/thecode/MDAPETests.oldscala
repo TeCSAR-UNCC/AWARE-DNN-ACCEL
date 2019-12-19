@@ -8,7 +8,7 @@ import chisel3.util._
 //                                     README
 
 // This same file is used to verify the APE as well as APU, for APE just use the file as it is 
-//For APU just comment the uncommented part and uncomment the commented part 	;=)
+//For APU just comment the uncommented part and uncomment the commented part 
 /**********************************************************************************/
 
 // class APETest(c: APU) extends PeekPokeTester(c)

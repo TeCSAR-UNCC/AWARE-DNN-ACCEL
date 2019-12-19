@@ -2,11 +2,11 @@ package thecode
 
 import chisel3.iotesters.{ChiselFlatSpec, Driver, PeekPokeTester}
 
-class networkTests(c: network) extends PeekPokeTester(c)
+class simnetTests(c: simnet) extends PeekPokeTester(c)
 {
 
 
-step(100000)//~2*224^2
+step(1000000)//~2*224^2
 
 /*
 		poke(c.io.enable, 1)

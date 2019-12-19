@@ -31,11 +31,12 @@ class CPE (val rowSize: Int,val filterSize: Int, val stride: Int, val outConv: I
 		val mac_out 		= Output(Vec(newPar,Vec(KUints,UInt(8.W))))//mac data
 		val Chan_Ptr  	= Output(UInt(10.W))//testbench drives
 		val valid_out=Output(UInt(1.W))
+		val DONE=Output(UInt(1.W))
 })
 
 		//make an array of memory with dataflow
 		//val values = (1 to 7).toArray
-
+		io.valid_out:=0.U
 
 		
 if(pool==0)
@@ -44,39 +45,47 @@ if(pool==0)
 		val ChanPTRDelay= RegInit(0.U(10.W))
 		val ChanPTRDelayFINAL= RegInit(0.U(10.W))
 		val MultiBuffer = Array.fill(ChanPar){ Module(new buffer(rowSize,filterSize,stride,outConv,KernNum,(ChanBuffer/pipeline),GROUPS,Shuffle,Conv)).io }//channel pipelining tells the CPE to hold less channels
+
+		io.DONE:=MultiBuffer(0).DONE
 		val MACDELAY = Reg(Vec(ChanPar  ,Vec(KUints,UInt(8.W))) )//we explicitaly delay the mac, try moving this into the mac
 		
 		//make this dependent on depthwise
 		
 		val Mpattern = 0x1.U((ChanPar).W)//state register
-		val active_CH_tile = RegInit(Vec(Mpattern.toBools))//for memory read
+		val Fpattern = 0x0.U((ChanPar).W)
+		val Tpattern = ~(0x0.U((ChanPar).W))
+		val active_CH_tile = RegInit(Vec(Mpattern.toBools))
 		
-		val chSwitch =Wire(Bool())
-		chSwitch:=0.U
-		for (i <- 0 until ChanPar)
-		{
-			when( MultiBuffer(i).KD)
-			{
-				chSwitch:=1.U
-
-			}
-			MultiBuffer(i).CHGO:=active_CH_tile(i)
-		}
-			
-		when( chSwitch)
-		{	
-			for (i <- 0 until ChanPar-1)
-			{				
-				active_CH_tile(i+1):=active_CH_tile(i)
-			}
-			active_CH_tile(0):=active_CH_tile(ChanPar-1)
-			
-
-		}
 		var channelSize=0
 		var chP=0
 		if(GROUPS==ChanBuffer*ChanPar)
 		{
+			//for memory read
+		
+			val chSwitch =Wire(Bool())
+			chSwitch:=0.U
+			for (i <- 0 until ChanPar)
+			{
+				when( MultiBuffer(i).KD)
+				{
+					chSwitch:=1.U
+
+				}
+				MultiBuffer(i).CHGO:=active_CH_tile(i)
+			}
+			
+			when( chSwitch)
+			{	
+				for (i <- 0 until ChanPar-1)
+				{				
+					active_CH_tile(i+1):=active_CH_tile(i)
+				}
+				active_CH_tile(0):=active_CH_tile(ChanPar-1)
+			
+
+			}
+
+
 			channelSize=1
 			chP=1
 			//if you have depthwise convolution and channel parlism, im just replicating the same channel over and over, with regular group conv, this becomes difficult
@@ -86,9 +95,18 @@ if(pool==0)
 		else
 		{
 
-			channelSize=(ChanBuffer/GROUPS)
-			chP=ChanPar
-			//in this case its the original value
+			for (i <- 0 until ChanPar)
+			{				
+				active_CH_tile(i):=Tpattern(i)
+			}
+			for (i <- 0 until ChanPar)
+			{
+
+				MultiBuffer(i).CHGO:=active_CH_tile(i)
+			}
+				channelSize=(ChanBuffer/GROUPS)
+				chP=ChanPar
+				//in this case its the original value
 		}
 
 		val buffIN =  Wire(Vec(Conv,UInt(8.W)))

@@ -10,8 +10,11 @@ object Launcher {
   val tests = Map(
  
       "buffer" -> { (manager: TesterOptionsManager) =>
-	//rowSize,filterSize,stride,outConv,KernNum,(ChanBuffer/pipeline),GROUPS,Shuffle,Conv
-        Driver.execute(() => new buffer(9,1,1,9,2,2,1,1,3), manager) {
+
+        Driver.execute(() => new buffer(
+	//rowSize,filterSize,stride,outConv,KernNum,(ChanBuffer/pipeline),GROUPS,Shuffle,Conv					
+	   9,       1,        1,      9,      2,             2,              1,    1,     3
+								), manager) {
           (c) => new bufferTests(c)
         }
       },
@@ -30,7 +33,7 @@ object Launcher {
         Driver.execute(() => new 
 	  layer(
 	//rowSize,filterSize,  stride,  Out_size , KernNum[10]   , KUInts   ,  ChanPar    ,  ChanBuffer[10]    ,  poolOut
-	   56	   ,3,		1,	  56,		1,	1,		1,		3,	"nopool",
+	   56	   ,3,		1,	  54,		1,	1,		1,		3,	"nopool",
 	                 //   delay    ,  GROUPS   ,  Shuffle   ,  pipeline   ,  Conv   ,   pool   ,FcDiv,ROM,AVG   
 			    20		,1		,1	   ,1		,1	   ,0	  ,1,1,0
 		), manager) {
@@ -136,6 +139,12 @@ object Launcher {
 	   "network" -> { (manager: TesterOptionsManager) =>
         Driver.execute(() => new network(), manager) {
           (c) => new networkTests(c)
+        }
+      },
+	//Fs,kn,kern-par,ch-par, chan-buff, test	
+	   "simnet" -> { (manager: TesterOptionsManager) =>
+        Driver.execute(() => new simnet(), manager) {
+          (c) => new simnetTests(c)
         }
       }
 

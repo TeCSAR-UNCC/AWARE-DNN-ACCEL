@@ -15,41 +15,56 @@ class ingen (val WaitTime: Int,val ChanPar: Int,val BW: Int) extends Module
 		val valid_Out=Output(UInt(ChanPar.W))
 })
 
+			val ValidREG =RegInit(1.U(1.W))
+			val Sum = RegInit(0.U((BW+1).W))//internal state reg
+			val Delay = RegInit(0.U(log2Ceil(WaitTime+2).W))//internal state reg
+			val limitREG =RegInit(1.U(1.W))
+			val DirectValid = Wire(Bool())
+			DirectValid:=false.B
+		if(WaitTime>0)
+		{
 
-		val Delay = RegInit(0.U(log2Ceil(WaitTime+1).W))//internal state reg
-		val limitREG =RegInit(1.U(1.W))
-		val ValidREG =RegInit(1.U(1.W))
-		val Sum = RegInit(0.U((BW+1).W))//internal state reg
-		when (Delay < ((WaitTime).asUInt(log2Ceil(WaitTime+1).W))) 
-		{ 
-			Delay:= Delay + 1.U
-			limitREG :=0.U
+
+			when (Delay < ((WaitTime).asUInt(log2Ceil(WaitTime+1).W))) 
+			{ 
+				Delay:= Delay + 1.U
+				limitREG :=0.U
+				DirectValid:=false.B
 				
-		}
-		when (Delay === ((WaitTime-1).asUInt(log2Ceil(WaitTime+1).W)))
-		{
-			limitREG:= 1.U
+			}
+			when (Delay === ((WaitTime-1).asUInt(log2Ceil(WaitTime+1).W)))
+			{
+				limitREG:= 1.U
+				DirectValid:=true.B
 			
-		}
+			}
 
-		when (Delay === ((WaitTime).asUInt(log2Ceil(WaitTime+1).W)))
-		{
- 			Delay:=0.U
+			when (Delay === ((WaitTime).asUInt(log2Ceil(WaitTime+1).W)))
+			{
+	 			Delay:=0.U
 					
-		}
+			}
 
 
-		when (limitREG === 1.U)
-		{
-			limitREG :=0.U
- 			Sum:=Sum+1.U
-			ValidREG:=1.U		
-		}
-		.otherwise
-		{
-			ValidREG:=0.U	
+			when (limitREG === 1.U)
+			{
+				limitREG :=0.U
+	 			Sum:=Sum+1.U
+				ValidREG:=1.U		
+			}
+			.otherwise
+			{
+				ValidREG:=0.U	
 
-		}
+			}
+	}
+
+	else
+	{
+			Sum:=Sum+1.U
+			ValidREG:=1.U
+			DirectValid:=true.B
+	}
 //output
 
 		val Out_vec = Wire(Vec(ChanPar,UInt((BW).W)))
@@ -58,7 +73,7 @@ class ingen (val WaitTime: Int,val ChanPar: Int,val BW: Int) extends Module
 		for( i <- 0 until ChanPar) 
 		{
 			Out_vec(i):=Sum+i.asUInt
-			Valid_vec(i):=ValidREG
+			Valid_vec(i):=DirectValid//ValidREG
 
 		}
 

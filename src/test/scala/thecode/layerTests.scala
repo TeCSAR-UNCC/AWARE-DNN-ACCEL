@@ -20,7 +20,7 @@ val row7 = Seq(63,64,65,66,67,68,69,70,71)
 val row8 = Seq(72,73,74,75,76,77,78,79,80)
 val IMAGE = row0++row1++row2++row3++row4++row5++row6++row7++row8
 
-	for(l <- 0 until c.rowSize*c.ChanBuffer)//input 3 channels
+	for(l <- 0 until (c.rowSize+2)*c.ChanBuffer)//input 3 channels
 		
 	{
 		for(input <- 0 until c.rowSize)//input 3 channels

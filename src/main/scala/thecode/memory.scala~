@@ -46,6 +46,9 @@ class memory (val filterSize: Int,val KernNum : Int,val KUints : Int,val ChanPar
 	else
 	{			//SyncReadMem
 		val Wmemory = SyncReadMem( ( (filterSize*filterSize*KernNum*ChanBuffer))/FcDiv , UInt((Conv*8).W)  )
+		val ptrREG=RegInit(0.U( log2Ceil(  (filterSize*filterSize*KernNum*ChanBuffer+1) ).W )   )
+		val WRITEPtr = RegInit(0.U(log2Ceil((((filterSize*filterSize*KernNum*ChanBuffer+1)))).W))//writing ptr
+		ptrREG:=io.PTR
 		val DOUT_A = Wire(UInt((8*Conv).W))
 		val DOUT_B=DOUT_A.asTypeOf( Vec(Conv,UInt(8.W)))
 		DOUT_A:=Wmemory.read(ptrREG)

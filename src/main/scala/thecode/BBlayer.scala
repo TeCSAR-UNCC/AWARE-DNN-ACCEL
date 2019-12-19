@@ -34,6 +34,7 @@ val io = IO(new Bundle {
 		val write_data  	= Input(UInt((ChanPar*8).W))//testbench drives
 	    	val output = Output(UInt((KUints*8).W))     
     		val valid_out=Output(UInt(KUints.W))
+		val DONE=Output(UInt(1.W))
 })
 
 
@@ -85,7 +86,8 @@ override def desiredName = lnum
 
 	io.valid_out:=(layer.io.valid_out.asUInt)
 	io.output:=(layer.io.output.asUInt)
-
+	
+	 io.DONE:=layer.io.DONE
 /*
 
 	val OUTe_b = Wire(Vec(ChanPar,Bool()))

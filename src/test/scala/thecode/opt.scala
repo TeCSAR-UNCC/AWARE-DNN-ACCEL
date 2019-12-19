@@ -83,8 +83,21 @@ for (j <- 0 until p.numlayers )
 
 	val WICMDS = mainDIR.dropRight(1)+"/python/WEIGHT_INITIAL.py "+path+"l_"+(j).toString+".v"
 
-	println(program)
+	//println(program)
 	Process("python "+WICMDS).!!
+
+	
+}
+
+
+for (j <- 0 until p.numlayers )  
+{  		
+
+
+	val WI2CMDS = mainDIR.dropRight(1)+"/python/WI2.py "+path+"l_"+(j).toString+".v"
+
+	//println(program)
+	Process("python "+WI2CMDS).!!
 
 	
 }
