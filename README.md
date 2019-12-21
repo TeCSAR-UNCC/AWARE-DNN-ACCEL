@@ -7,7 +7,7 @@ This repository is a chisel project directory. Specifically, this is an architec
 ## How to get started
 1. (WIP) Use the semi-automated Design space explorer to generate the parameters for your targeted constraints and network.
     *(currently implementing further automation, including linear optimizer and better resource estimation)*
-Make sure to install Chisel first, by following these steps 
+Make sure to install Chisel first, by following these steps ( directly from the Chisel Repo https://github.com/freechipsproject/chisel3 )
       1. Install java
          ```sudo apt-get install default-jdk```
       1. Install sbt
@@ -17,15 +17,24 @@ Make sure to install Chisel first, by following these steps
              sudo apt-get update	
              sudo apt-get install sbt
            ```
-      1.
-This link explains how:
-https://github.com/freechipsproject/chisel3
+      1.Install Verilator
+      ```
+      sudo apt-get install git make autoconf g++ flex bison	
+      git clone http://git.veripool.org/git/verilator	
+      git pull	
+      git checkout verilator_4_016	
+      unset VERILATOR_ROOT # For bash, unsetenv for csh	
+      autoconf # Create ./configure script	
+      ./configure	
+      make	
+      sudo make install	
+      ```
 1. Simply clone this repository and run SBT inside it to get started.
 
 1. Edit */src/main/scala/thecode/netParam.scala* to include the parameters for your specific Architecture design.
 The parameters are currently set to a toy design to prove our analytical model for latency
 
-After you have the parameters for your Design its three SBT commands to generate the verilog.
+After you have the parameters for your design, only three SBT commands are required to generate the verilog.
 
 1. Run *test:runMain thecode.generator* to generate each layer step by step.
 
