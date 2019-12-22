@@ -62,7 +62,7 @@ This script works in the directory: */src/main/resources/*
 
 1. Lastly, *test:runMain thecode.connector* connects everything together.
 Before running this command, the files in: */src/main/resources/* must be moved to the */verilog/* directory.
-It is advised to delete old files in there first.
+It is advised to delete old files in there first. The final outputs can be found in the */verilog/* directory.
 
 The very last step is to generate the bitstream from the machine generated verilog.
 *A Vivado TCL script can be used, and will be proved in the form of a script generator*
