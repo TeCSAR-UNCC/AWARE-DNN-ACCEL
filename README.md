@@ -32,15 +32,32 @@ Make sure to install Chisel first, by following these steps ( directly from the 
 1. Simply clone this repository and run SBT inside it to get started.
 
 1. Edit */src/main/scala/thecode/netParam.scala* to include the parameters for your specific Architecture design.
-The parameters are currently set to a toy design to prove our analytical model for latency
+The parameters are currently set to a toy design to prove our analytical model for latency.
 
-After you have the parameters for your design, only three SBT commands are required to generate the verilog.
+After you have the parameters for your design, you can generate the verilator simulation of our toy example with the following commands:
+```
+sbt
+test:runMain thecode.Launcher simnet --backend-name verilator
+```
+The simulation is a vcd file that can be viewed in GTKwave. Which you can install with:
+```
+sudo apt-get update
+sudo apt-get install gtkwave
+```
+It should be noted that even with a toy example, the VCD file is a few hundred MBs.
+After verifying a design through simulation, only three SBT commands are required to generate the verilog.
+```
+sbt
+test:runMain thecode.generator
+test:runMain thecode.opt
+test:runMain thecode.connector
+```
+These commands should be enetered sequnetially
+1. *test:runMain thecode.generator* is used generate each layer step by step.
 
-1. Run *test:runMain thecode.generator* to generate each layer step by step.
+1. *test:runMain thecode.opt* is used to optimize each layer with synthesis attributes for vivado.
 
-1. Run *test:runMain thecode.opt* to optimize each layer with synthesis attributes for vivado.
-
-1. Lastly, run *test:runMain thecode.connector* to connect everything together
+1. Lastly, *test:runMain thecode.connector* connects everything together.
 
 The very last step is to generate the bitstream from the machine generated verilog.
 *A Vivado TCL script can be used, and will be proved in the form of a script generator*
