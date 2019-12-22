@@ -39,7 +39,7 @@ After you have the parameters for your design, you can generate the verilator si
 sbt
 test:runMain thecode.Launcher simnet --backend-name verilator
 ```
-The simulation is a vcd file located: */test_run_dir/thecode/simnet/simnet.vcd*
+The simulation is a vcd file located: */test_run_dir/thecode/simnet/simnet.vcd*.
 This file can be viewed in GTKWave. Which you can install with:
 ```
 sudo apt-get update
