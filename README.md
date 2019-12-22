@@ -40,7 +40,8 @@ sbt
 test:runMain thecode.Launcher simnet --backend-name verilator
 ```
 The simulation is a vcd file located: */test_run_dir/thecode/simnet/simnet.vcd*.
-This file can be viewed in GTKWave. Which you can install with:
+
+This file can be viewed in GTKWave, which can be install with:
 ```
 sudo apt-get update
 sudo apt-get install gtkwave
